@@ -16,9 +16,12 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from functools import lru_cache
 
+from pathlib import Path
+
 from fastapi import Depends, FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
+from starlette import status
 
 from utils.mock_llm import ask_llm
 
@@ -70,6 +73,15 @@ class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
 
 
+@app.get("/", response_class=HTMLResponse)
+def index():
+    """Trang giao diện điều khiển AI Agent Control Center."""
+    ui_path = Path(__file__).parent / "static" / "index.html"
+    if ui_path.exists():
+        return HTMLResponse(content=ui_path.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Day 12 Agent Service is Online</h1>")
+
+
 # ─────────────────────────────────────────────────────────────
 # Health & readiness
 # ─────────────────────────────────────────────────────────────
@@ -87,7 +99,17 @@ def health():
     lời câu hỏi "có cần restart container này không?". Nếu nó phụ thuộc
     Redis, Redis chết một nhịp là cả cụm container bị restart theo.
     """
-    raise NotImplementedError("TODO (CP1/CP4): cài đặt /health")
+    if lifecycle.shutting_down:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "shutting_down"},
+        )
+
+    return {
+        "status": "ok",
+        "service": SERVICE_NAME,
+        "version": SERVICE_VERSION,
+    }
 
 
 @app.get("/ready")
@@ -102,7 +124,22 @@ def ready(store: ConversationStore = Depends(get_store)):
     Khác /health ở chỗ: endpoint này ĐƯỢC PHÉP kiểm tra dependency. Load
     balancer dùng nó để quyết định có đẩy request vào instance này không.
     """
-    raise NotImplementedError("TODO (CP4): cài đặt /ready")
+    if lifecycle.shutting_down:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "shutting_down"},
+        )
+
+    if not store.ping():
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "not ready", "redis": False},
+        )
+
+    return {
+        "status": "ready",
+        "redis": True,
+    }
 
 
 # ─────────────────────────────────────────────────────────────
@@ -145,7 +182,52 @@ def ask(
     ``user_id`` do ``verify_api_key`` trả về, nên request không có API key
     hợp lệ sẽ dừng ở 401 trước khi chạm vào bất cứ dòng nào ở đây.
     """
-    raise NotImplementedError("TODO (CP3/CP4): cài đặt /ask")
+    # 1. Chặn nếu vượt tần suất gọi
+    limiter.check(user_id)
+
+    # 2. Chặn nếu hết ngân sách tháng
+    guard.check(user_id)
+
+    # 3. Lấy lịch sử hội thoại hiện có
+    history = store.get_history(user_id)
+
+    # 4. Gọi LLM sinh câu trả lời
+    result = ask_llm(payload.question, history)
+
+    # 5. Lưu cả câu hỏi của user và phản hồi của model vào store
+    store.append(user_id, "user", payload.question)
+    store.append(user_id, "assistant", result["answer"])
+
+    # 6. Cộng dồn chi phí token thực tế vào Redis
+    guard.record(user_id, result["cost_usd"])
+
+    # 7. Ghi structured log
+    log_event(
+        "ask_completed",
+        user_id=user_id,
+        tokens_in=result["tokens_in"],
+        tokens_out=result["tokens_out"],
+        cost_usd=result["cost_usd"],
+    )
+
+    # 8. Trả về payload kết quả cho client
+    return {
+        "answer": result["answer"],
+        "user_id": user_id,
+        "history_length": len(history),
+        "cost_usd": result["cost_usd"],
+        "tokens": {
+            "in": result["tokens_in"],
+            "out": result["tokens_out"],
+        },
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    settings = get_settings()
+    uvicorn.run(app, host="0.0.0.0", port=settings.port)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Day 12 AI Agent — Cloud & Microservices Control Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-primary: #07090e;
+      --bg-secondary: #0f1420;
+      --bg-card: rgba(18, 24, 38, 0.7);
+      --bg-glass: rgba(255, 255, 255, 0.03);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.5);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent-primary: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.35);
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-rose: #f43f5e;
+      --accent-amber: #f59e0b;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow-lg: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.1) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(15, 20, 32, 0.6) 0px, transparent 100%);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    header {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(7, 9, 14, 0.75);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0.9rem 1.75rem;
+    }
+
+    .header-content {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-cyan));
+      display: grid;
+      place-items: center;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .brand-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: #fff;
+    }
+
+    .brand-title h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #fff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-title p {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .status-badges {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      font-family: var(--font-mono);
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      transition: all 0.2s ease;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+
+    .badge.active .badge-dot {
+      background: var(--accent-emerald);
+      box-shadow: 0 0 8px var(--accent-emerald);
+      animation: pulse 2s infinite;
+    }
+
+    .badge.error .badge-dot {
+      background: var(--accent-rose);
+      box-shadow: 0 0 8px var(--accent-rose);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1300px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 960px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Sidebar / Control Panel */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .card-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      background: rgba(7, 9, 14, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.75rem;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    input[type="text"]:focus, input[type="password"]:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .toggle-btn {
+      position: absolute;
+      right: 8px;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 4px;
+    }
+
+    .toggle-btn:hover {
+      color: var(--text-main);
+    }
+
+    /* Telemetry Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .stat-box {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-bottom: 0.2rem;
+    }
+
+    .stat-val {
+      font-size: 1.15rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--accent-cyan);
+    }
+
+    .stat-val.cost {
+      color: var(--accent-emerald);
+    }
+
+    /* Diagnostics Actions */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+      outline: none;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+    }
+
+    .btn-secondary {
+      background: var(--bg-glass);
+      border-color: var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-warning {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.25);
+      color: var(--accent-amber);
+    }
+
+    .btn-warning:hover {
+      background: rgba(245, 158, 11, 0.2);
+    }
+
+    /* Chat Section */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 120px);
+      min-height: 600px;
+      position: relative;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      scroll-behavior: smooth;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+
+    .message {
+      display: flex;
+      gap: 0.85rem;
+      max-width: 85%;
+      animation: messageIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes messageIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .message.agent .message-avatar {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-cyan));
+      color: #fff;
+    }
+
+    .message.user .message-avatar {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .message-bubble {
+      padding: 0.9rem 1.15rem;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      line-height: 1.55;
+      position: relative;
+    }
+
+    .message.agent .message-bubble {
+      background: rgba(15, 20, 32, 0.85);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      border-top-left-radius: 4px;
+    }
+
+    .message.user .message-bubble {
+      background: linear-gradient(135deg, #4f46e5, var(--accent-primary));
+      color: #fff;
+      border-top-right-radius: 4px;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.25);
+    }
+
+    .message-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-top: 0.5rem;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+    }
+
+    .meta-tag {
+      background: rgba(0, 0, 0, 0.25);
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      padding: 0.8rem 1.1rem;
+      background: rgba(15, 20, 32, 0.85);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      border-top-left-radius: 4px;
+      width: fit-content;
+      margin-left: 42px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--text-dim);
+      border-radius: 50%;
+      animation: typing 1.4s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-5px); opacity: 1; }
+    }
+
+    /* Prompts Quick Picks */
+    .quick-picks {
+      padding: 0.6rem 1.25rem;
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      border-top: 1px solid var(--border-color);
+      background: rgba(7, 9, 14, 0.4);
+    }
+
+    .quick-picks::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .quick-picks::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+    }
+
+    .chip {
+      white-space: nowrap;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .chip:hover {
+      background: rgba(99, 102, 241, 0.15);
+      color: #fff;
+      border-color: var(--accent-primary);
+    }
+
+    /* Input Bar */
+    .chat-input-bar {
+      padding: 1rem 1.25rem;
+      background: rgba(15, 20, 32, 0.95);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .chat-input-bar textarea {
+      flex: 1;
+      background: rgba(7, 9, 14, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 1rem;
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      resize: none;
+      outline: none;
+      height: 48px;
+      line-height: 1.4;
+      transition: all 0.2s ease;
+    }
+
+    .chat-input-bar textarea:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+
+    .send-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, var(--accent-primary), #4f46e5);
+      border: none;
+      color: #fff;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover:not(:disabled) {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .send-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    /* Toast Container */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .toast {
+      padding: 0.75rem 1.15rem;
+      border-radius: var(--radius-sm);
+      background: rgba(15, 20, 32, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      box-shadow: var(--shadow-lg);
+      animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toast.success { border-color: var(--accent-emerald); }
+    .toast.error { border-color: var(--accent-rose); }
+    .toast.warning { border-color: var(--accent-amber); }
+
+    @keyframes toastIn {
+      from { transform: translateX(50px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="header-content">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="brand-title">
+          <h1>Day 12 Cloud Agent</h1>
+          <p>Stateless Microservices &amp; Reliability Probe</p>
+        </div>
+      </div>
+
+      <div class="status-badges">
+        <div class="badge" id="badge-liveness" title="Liveness Probe (/health)">
+          <div class="badge-dot"></div>
+          <span>Liveness: Checking</span>
+        </div>
+        <div class="badge" id="badge-readiness" title="Readiness Probe (/ready) -> Redis status">
+          <div class="badge-dot"></div>
+          <span>Redis: Checking</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Left Sidebar: Controls & Diagnostics -->
+    <aside class="sidebar">
+      <div class="glass-card">
+        <div class="card-title">
+          <span>Security &amp; Auth</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+
+        <div class="form-group">
+          <label for="input-api-key">X-API-Key (Bearer)</label>
+          <div class="input-wrapper">
+            <input type="password" id="input-api-key" placeholder="Nhập AGENT_API_KEY..." />
+            <button class="toggle-btn" id="toggle-key" title="Hiện/Ẩn">👁️</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="input-user-id">X-User-Id</label>
+          <div class="input-wrapper">
+            <input type="text" id="input-user-id" value="khoi-developer" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Telemetry Stats -->
+      <div class="glass-card">
+        <div class="card-title">
+          <span>Session Telemetry</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">Calls This Session</div>
+            <div class="stat-val" id="stat-calls">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Total Cost</div>
+            <div class="stat-val cost" id="stat-cost">$0.0000</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Tokens In</div>
+            <div class="stat-val" id="stat-tin">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Tokens Out</div>
+            <div class="stat-val" id="stat-tout">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reliability Diagnostics -->
+      <div class="glass-card">
+        <div class="card-title">
+          <span>Hạ Tầng &amp; Diagnostics</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-secondary" id="btn-check-probes">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Ping /health &amp; /ready
+          </button>
+          <button class="btn btn-warning" id="btn-stress-limit" title="Gọi dồn 12 request để test 429 Too Many Requests">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Test Rate Limit (429)
+          </button>
+          <button class="btn btn-secondary" id="btn-clear-chat">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Clear Local Chat
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right: Chat Experience -->
+    <section class="glass-card chat-container">
+      <div class="chat-messages" id="chat-messages">
+        <!-- Default Welcome Message -->
+        <div class="message agent">
+          <div class="message-avatar">AI</div>
+          <div>
+            <div class="message-bubble">
+              Xin chào! Tôi là AI Agent phân tán của bài lab <strong>Day 12: Cloud Infrastructure &amp; Deployment</strong>. 
+              Mọi lịch sử hội thoại của tôi được quản trị dạng <em>Stateless</em> trên Redis, có bảo vệ bằng Rate Limiter và Cost Guard. 
+              Bạn muốn trao đổi về vấn đề gì hôm nay?
+            </div>
+            <div class="message-meta">
+              <span class="meta-tag">System Ready</span>
+              <span class="meta-tag">FastAPI + Redis</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Typing Indicator -->
+      <div class="typing-indicator" id="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+
+      <!-- Quick prompts -->
+      <div class="quick-picks">
+        <button class="chip" data-prompt="Deploy ứng dụng lên Cloud là gì?">🚀 Deploy là gì?</button>
+        <button class="chip" data-prompt="Giải thích vì sao phải dùng Stateless Service trong microservices?">🧠 Stateless vs Stateful</button>
+        <button class="chip" data-prompt="Khác nhau giữa Liveness Probe (/health) và Readiness Probe (/ready)?">💓 Liveness vs Readiness</button>
+        <button class="chip" data-prompt="Graceful shutdown hoạt động như thế nào khi nhận tín hiệu SIGTERM?">🛑 Graceful Shutdown</button>
+      </div>
+
+      <!-- Input Bar -->
+      <div class="chat-input-bar">
+        <textarea id="chat-input" placeholder="Gõ câu hỏi và nhấn Enter để gửi..." rows="1"></textarea>
+        <button class="send-btn" id="send-btn" title="Gửi câu hỏi">
+          <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <script>
+    // State
+    const state = {
+      calls: 0,
+      totalCost: 0,
+      tokensIn: 0,
+      tokensOut: 0
+    };
+
+    // DOM Elements
+    const apiKeyInput = document.getElementById('input-api-key');
+    const userIdInput = document.getElementById('input-user-id');
+    const toggleKeyBtn = document.getElementById('toggle-key');
+    const badgeLiveness = document.getElementById('badge-liveness');
+    const badgeReadiness = document.getElementById('badge-readiness');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const typingIndicator = document.getElementById('typing-indicator');
+
+    // Telemetry DOM
+    const statCalls = document.getElementById('stat-calls');
+    const statCost = document.getElementById('stat-cost');
+    const statTin = document.getElementById('stat-tin');
+    const statTout = document.getElementById('stat-tout');
+
+    // Initial setup from localStorage
+    const savedKey = localStorage.getItem('agent_api_key');
+    if (savedKey) apiKeyInput.value = savedKey;
+    apiKeyInput.addEventListener('change', () => {
+      localStorage.setItem('agent_api_key', apiKeyInput.value.trim());
+    });
+
+    // Toggle password visibility
+    toggleKeyBtn.addEventListener('click', () => {
+      apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+    });
+
+    // Show Toast
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerText = message;
+      document.getElementById('toast-container').appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    // Check Probes
+    async function checkProbes() {
+      // 1. /health
+      try {
+        const resHealth = await fetch('/health');
+        if (resHealth.ok) {
+          badgeLiveness.className = 'badge active';
+          badgeLiveness.querySelector('span').innerText = 'Liveness: 200 OK';
+        } else {
+          badgeLiveness.className = 'badge error';
+          badgeLiveness.querySelector('span').innerText = `Liveness: ${resHealth.status}`;
+        }
+      } catch (err) {
+        badgeLiveness.className = 'badge error';
+        badgeLiveness.querySelector('span').innerText = 'Liveness: Offline';
+      }
+
+      // 2. /ready
+      try {
+        const resReady = await fetch('/ready');
+        if (resReady.ok) {
+          badgeReadiness.className = 'badge active';
+          badgeReadiness.querySelector('span').innerText = 'Redis: Connected';
+        } else {
+          badgeReadiness.className = 'badge error';
+          badgeReadiness.querySelector('span').innerText = `Redis: ${resReady.status}`;
+        }
+      } catch (err) {
+        badgeReadiness.className = 'badge error';
+        badgeReadiness.querySelector('span').innerText = 'Redis: Disconnected';
+      }
+    }
+
+    // Send Message
+    async function sendMessage(text) {
+      const question = text || chatInput.value.trim();
+      if (!question) return;
+
+      const apiKey = apiKeyInput.value.trim();
+      const userId = userIdInput.value.trim() || 'anonymous';
+
+      // Append User message to UI
+      appendMessage('user', question);
+      chatInput.value = '';
+      sendBtn.disabled = true;
+      typingIndicator.style.display = 'flex';
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      const startTime = performance.now();
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (apiKey) headers['X-API-Key'] = apiKey;
+        if (userId) headers['X-User-Id'] = userId;
+
+        const response = await fetch('/ask', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ question })
+        });
+
+        const elapsed = Math.round(performance.now() - startTime);
+
+        if (!response.ok) {
+          let errText = `HTTP Error ${response.status}`;
+          try {
+            const errJson = await response.json();
+            errText = errJson.detail || JSON.stringify(errJson);
+          } catch(e) {}
+
+          if (response.status === 401) {
+            showToast('Lỗi 401: Thiếu hoặc sai API Key. Hãy nhập đúng key ở ô cấu hình.', 'error');
+            appendMessage('agent', `❌ **401 Unauthorized**: ${errText}\nVui lòng kiểm tra lại \`X-API-Key\` ở thanh bên trái.`);
+          } else if (response.status === 429) {
+            showToast('Lỗi 429: Rate limit exceeded (quá 10 req/phút).', 'warning');
+            appendMessage('agent', `⚠️ **429 Too Many Requests**: ${errText}\nBạn đã vượt quá giới hạn tần suất gọi.`);
+          } else if (response.status === 402) {
+            showToast('Lỗi 402: Cost Guard - Hết ngân sách tháng.', 'error');
+            appendMessage('agent', `💸 **402 Payment Required**: ${errText}\nChi phí đã vượt ngân sách tháng ($10.0).`);
+          } else {
+            showToast(`Lỗi ${response.status}: ${errText}`, 'error');
+            appendMessage('agent', `❌ **Lỗi ${response.status}**: ${errText}`);
+          }
+          return;
+        }
+
+        const data = await response.json();
+        state.calls++;
+        state.totalCost += (data.cost_usd || 0);
+        state.tokensIn += (data.tokens?.in || 0);
+        state.tokensOut += (data.tokens?.out || 0);
+        updateTelemetry();
+
+        appendMessage('agent', data.answer, {
+          tokensIn: data.tokens?.in,
+          tokensOut: data.tokens?.out,
+          cost: data.cost_usd,
+          historyLength: data.history_length,
+          latency: elapsed
+        });
+
+      } catch (err) {
+        showToast(`Mất kết nối: ${err.message}`, 'error');
+        appendMessage('agent', `❌ **Lỗi mạng**: Không thể kết nối tới máy chủ (${err.message}).`);
+      } finally {
+        typingIndicator.style.display = 'none';
+        sendBtn.disabled = false;
+        chatInput.focus();
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    }
+
+    function appendMessage(role, text, meta = null) {
+      const msg = document.createElement('div');
+      msg.className = `message ${role}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'message-avatar';
+      avatar.innerText = role === 'agent' ? 'AI' : 'YOU';
+
+      const content = document.createElement('div');
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.innerHTML = formatMarkdown(text);
+      content.appendChild(bubble);
+
+      if (meta) {
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'message-meta';
+        metaDiv.innerHTML = `
+          <span class="meta-tag">Tokens: ${meta.tokensIn} in / ${meta.tokensOut} out</span>
+          <span class="meta-tag">Cost: $${meta.cost.toFixed(5)}</span>
+          <span class="meta-tag">Turns: ${meta.historyLength}</span>
+          <span class="meta-tag">${meta.latency}ms</span>
+        `;
+        content.appendChild(metaDiv);
+      }
+
+      msg.appendChild(avatar);
+      msg.appendChild(content);
+      chatMessages.appendChild(msg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function formatMarkdown(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 4px;border-radius:4px;font-family:var(--font-mono);">$1</code>')
+        .replace(/\n/g, '<br/>');
+    }
+
+    function updateTelemetry() {
+      statCalls.innerText = state.calls;
+      statCost.innerText = `$${state.totalCost.toFixed(4)}`;
+      statTin.innerText = state.tokensIn;
+      statTout.innerText = state.tokensOut;
+    }
+
+    // Event Listeners
+    sendBtn.addEventListener('click', () => sendMessage());
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        sendMessage(chip.getAttribute('data-prompt'));
+      });
+    });
+
+    document.getElementById('btn-check-probes').addEventListener('click', () => {
+      checkProbes();
+      showToast('Đã gửi yêu cầu kiểm tra probes /health và /ready.', 'info');
+    });
+
+    document.getElementById('btn-stress-limit').addEventListener('click', async () => {
+      showToast('Đang kích hoạt 12 request liên tiếp để kiểm tra Rate Limit...', 'warning');
+      const apiKey = apiKeyInput.value.trim();
+      const userId = userIdInput.value.trim() || 'test-burst';
+
+      for (let i = 1; i <= 12; i++) {
+        fetch('/ask', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': apiKey,
+            'X-User-Id': userId
+          },
+          body: JSON.stringify({ question: `Stress call #${i}` })
+        }).then(res => {
+          if (res.status === 429) {
+            showToast(`Call #${i} bị chặn bởi Rate Limiter (429 Too Many Requests)!`, 'error');
+          }
+        });
+      }
+    });
+
+    document.getElementById('btn-clear-chat').addEventListener('click', () => {
+      chatMessages.innerHTML = '';
+      showToast('Đã dọn sạch hội thoại giao diện.', 'info');
+    });
+
+    // Check probes on load
+    checkProbes();
+    setInterval(checkProbes, 15000);
+  </script>
+</body>
+</html>

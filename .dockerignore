@@ -2,5 +2,46 @@
 # Bỏ sót .env = leak secret vào image. Bỏ sót .git = image phình to.
 # Bổ sung đủ các mục còn thiếu — xem tests/test_cp2.py để biết yêu cầu.
 
+# 1. Bảo mật tuyệt đối — chặn leak secrets vào image
+.env
+.env.*
+*.env
+
+# 2. Quản lý mã nguồn & tài liệu git — tránh phình to build context
 .git
 .gitignore
+.gitattributes
+
+# 3. Python cache, bytecode & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 4. Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# 5. Testing, coverage & tooling cache
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# 6. IDEs & hệ điều hành
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# 7. Docker & test files không cần trong production image (tùy chọn nhưng nên có)
+Dockerfile*
+docker-compose*.yml
+tests/
